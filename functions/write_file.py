@@ -1,6 +1,3 @@
-
-
-
 def write_file(working_directory, file_path, content):
     import os
 
@@ -21,7 +18,7 @@ def write_file(working_directory, file_path, content):
         with open(full_path, 'w', encoding='utf-8') as file:
             file.write(content)
 
-        return f'Success: Written to "{file_path}"'
+        return f'Successfully wrote to "{file_path}" ({len(content)} characters written)'
 
     except Exception as e:
         return f"Error: {str(e)}"
