@@ -1,48 +1,44 @@
-from functions.get_files_info import get_files_info
+from functions.get_file_content import get_file_content
 
 def main():
-    # Test 1: Current directory
-    result1 = get_files_info("calculator", ".")
-    print('get_files_info("calculator", "."):')
-    print("Result for current directory:")
+    print("Testing get_file_content function")
+    print("=" * 50)
+    
+    # Test 1: Read main.py
+    print('\nTest 1: get_file_content("calculator", "main.py")')
+    result1 = get_file_content("calculator", "main.py")
     if result1.startswith("Error:"):
-        print(f"    {result1}")
+        print(f"Error: {result1}")
     else:
-        for line in result1.split('\n'):
-            print(f" {line}")
-    print()
-
-    # Test 2: Subdirectory
-    result2 = get_files_info("calculator", "pkg")
-    print('get_files_info("calculator", "pkg"):')
-    print("Result for 'pkg' directory:")
+        print(f"Success: Read {len(result1)} characters")
+        print("File content:")
+        print(result1)
+    
+    # Test 2: Read pkg/calculator.py
+    print('\nTest 2: get_file_content("calculator", "pkg/calculator.py")')
+    result2 = get_file_content("calculator", "pkg/calculator.py")
     if result2.startswith("Error:"):
-        print(f"    {result2}")
+        print(f"Error: {result2}")
     else:
-        for line in result2.split('\n'):
-            print(f" {line}")
-    print()
-
-    # Test 3: Absolute path outside working directory
-    result3 = get_files_info("calculator", "/bin")
-    print('get_files_info("calculator", "/bin"):')
-    print("Result for '/bin' directory:")
+        print(f"Success: Read {len(result2)} characters")
+        print("File content:")
+        print(result2)
+    
+    # Test 3: Try to read outside working directory
+    print('\nTest 3: get_file_content("calculator", "/bin/cat")')
+    result3 = get_file_content("calculator", "/bin/cat")
     if result3.startswith("Error:"):
-        print(f"    {result3}")
+        print(f"✓ Expected error: {result3}")
     else:
-        for line in result3.split('\n'):
-            print(f" {line}")
-    print()
-
-    # Test 4: Relative path outside working directory
-    result4 = get_files_info("calculator", "../")
-    print('get_files_info("calculator", "../"):')
-    print("Result for '../' directory:")
+        print(f"✗ Unexpected success - should have been blocked")
+    
+    # Test 4: Try to read non-existent file
+    print('\nTest 4: get_file_content("calculator", "pkg/does_not_exist.py")')
+    result4 = get_file_content("calculator", "pkg/does_not_exist.py")
     if result4.startswith("Error:"):
-        print(f"    {result4}")
+        print(f"✓ Expected error: {result4}")
     else:
-        for line in result4.split('\n'):
-            print(f" {line}")
+        print(f"✗ Unexpected success - file should not exist")
 
 if __name__ == "__main__":
     main()
