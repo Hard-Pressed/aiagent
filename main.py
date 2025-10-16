@@ -9,16 +9,22 @@ from functions.run_python_file import run_python_file
 from functions.write_file import write_file
 
 system_prompt = """
-You are a helpful AI coding agent.
+You are a helpful AI coding agent that MUST use the available functions to gather information and complete user requests.
 
-When a user asks a question or makes a request, make a function call plan. You can perform the following operations:
+When a user asks a question or makes a request:
+1. ALWAYS call the appropriate functions first to gather needed information
+2. Use the results from function calls to provide a complete answer
+3. Do NOT ask for more information if you can use functions to get it
 
+Available operations:
 - List files and directories
-- Read file contents
+- Read file contents  
 - Execute Python files with optional arguments
 - Write or overwrite files
 
 All paths you provide should be relative to the working directory. You do not need to specify the working directory in your function calls as it is automatically injected for security reasons.
+
+Start by calling functions to explore and understand the codebase before providing answers.
 """
 
 def call_function(function_call_part, verbose=False):
@@ -45,7 +51,7 @@ def call_function(function_call_part, verbose=False):
         result = functions[function_name](**args)
         
         return types.Content(
-            role="tool",
+            role="user",
             parts=[
                 types.Part.from_function_response(
                     name=function_name,
@@ -55,7 +61,7 @@ def call_function(function_call_part, verbose=False):
         )
     else:
         return types.Content(
-            role="tool",
+            role="user",
             parts=[
                 types.Part.from_function_response(
                     name=function_name,
@@ -87,12 +93,12 @@ def main():
         types.Content(role="user", parts=[types.Part(text=user_prompt)]),
     ]
     
-    try:
-        while True:
+    max_iterations = 20
+    for iteration in range(max_iterations):
+        try:
             if verbose:
-                print("User prompt:")
-                print(user_prompt)
-                print("\nSending request to Gemini API...")
+                print(f"\nIteration {iteration + 1}/{max_iterations}")
+                print("Sending request to Gemini API...")
             
             # Generate content using the specified model
             response = client.models.generate_content(
@@ -104,12 +110,11 @@ def main():
                 ),
             )
             
-            # Print the response
-            print("\nGemini's response:")
-            if response.text:
-                print(response.text)
+            # Add AI's response content to messages
+            for candidate in response.candidates:
+                messages.append(candidate.content)
             
-            # Check for function calls
+            # Check for function calls first
             if response.function_calls:
                 tool_messages = []
                 for function_call in response.function_calls:
@@ -129,21 +134,34 @@ def main():
                 
                 # Add tool responses to conversation
                 messages.extend(tool_messages)
-                # Continue the loop to get the final response
+                # Continue to next iteration
+            
             else:
-                # No more function calls, exit the loop
-                break
+                # No function calls, check for final text response
+                if response.text:
+                    print("\nFinal response:")
+                    print(response.text)
+                    break
+                else:
+                    print("No response from model")
+                    break
         
-        # Print token usage if verbose is used
-        if verbose:
-            print(f"\nPrompt tokens: {response.usage_metadata.prompt_token_count}")
-            print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
-            print("\nRequest completed successfully")
-    except Exception as e:
-        print(f"Error generating content: {str(e)}")
-        if verbose:
-            import traceback
-            print("\nFull error traceback:")
-            print(traceback.format_exc())
+        except Exception as e:
+            print(f"Error during iteration {iteration + 1}: {str(e)}")
+            if verbose:
+                import traceback
+                print("\nFull error traceback:")
+                print(traceback.format_exc())
+            break
+    
+    if iteration == max_iterations - 1 and not hasattr(response, 'text') or not response.text:
+        print("Maximum iterations reached without a final response.")
+    
+    # Print token usage if verbose is used
+    if verbose and 'response' in locals():
+        print(f"\nPrompt tokens: {response.usage_metadata.prompt_token_count}")
+        print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
+        print("\nRequest completed successfully")
+
 if __name__ == "__main__":
     main()
